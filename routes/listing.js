@@ -25,7 +25,7 @@ router.get("/:id", wrapAsync(ListingControllers.showListing));
 router.get("/:id/edit",isLoggedIn,isOwner,wrapAsync (ListingControllers.editListing));
 
 //Create Route
-// router.post("/",isLoggedIn,validateListing, wrapAsync(ListingControllers.createListing));
+ router.post("/",isLoggedIn,validateListing, wrapAsync(ListingControllers.createListing));
 
 
 

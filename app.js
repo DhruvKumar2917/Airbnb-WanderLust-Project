@@ -31,7 +31,13 @@ main()
   });
 
 async function main() {
-  await mongoose.connect(dbUrl);
+  await mongoose.connect(dbUrl, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  ssl: true,
+  serverSelectionTimeoutMS: 5000, // Optional timeout
+});
+
 }
 
 app.set("view engine", "ejs");

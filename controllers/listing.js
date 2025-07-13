@@ -43,36 +43,49 @@ module.exports.editListing=  async (req, res) => {
 };
 
 module.exports.createListing = async (req, res) => {
-  const geoResponse = await geocodingClient.forwardGeocode({
-    query: req.body.listing.location,
-    limit: 1,
-  }).send();
+  try {
+    if (!req.body.listing || !req.body.listing.location) {
+      req.flash("error", "Location is required.");
+      return res.redirect("/listings/new");
+    }
 
-  // Check if geometry was found
-  if (!geoResponse.body.features.length) {
-    req.flash("error", "Could not find that location on the map.");
-    return res.redirect("/listings/new");
+    const geoResponse = await geocodingClient.forwardGeocode({
+      query: req.body.listing.location,
+      limit: 1,
+    }).send();
+
+    if (!geoResponse.body.features.length) {
+      req.flash("error", "Could not find that location on the map.");
+      return res.redirect("/listings/new");
+    }
+
+    if (!req.file) {
+      req.flash("error", "Image upload is required.");
+      return res.redirect("/listings/new");
+    }
+
+    const { path, filename } = req.file;
+    const newListing = new Listing(req.body.listing);
+    newListing.owner = req.user._id;
+    newListing.image = { url: path, filename };
+
+    const geometry = geoResponse.body.features[0].geometry;
+    if (!geometry?.type || !geometry?.coordinates) {
+      req.flash("error", "Invalid location data from Mapbox.");
+      return res.redirect("/listings/new");
+    }
+
+    newListing.geometry = geometry;
+
+    await newListing.save();
+    req.flash("success", "New Listing Created");
+    res.redirect("/listings");
+
+  } catch (err) {
+    console.log("❌ Error in createListing:", err);
+    req.flash("error", "Something went wrong.");
+    res.redirect("/listings/new");
   }
-
-  const { path, filename } = req.file;
-  const newListing = new Listing(req.body.listing);
-  newListing.owner = req.user._id;
-  newListing.image = { url: path, filename };
-
-  // ✅ Set geometry correctly
-  const geometry = geoResponse.body.features[0].geometry;
-
-  // Confirm 'type' and 'coordinates' exist before assignment
-  if (!geometry?.type || !geometry?.coordinates) {
-    req.flash("error", "Invalid location data from Mapbox.");
-    return res.redirect("/listings/new");
-  }
-
-  newListing.geometry = geometry;
-
-  await newListing.save();
-  req.flash("success", "New Listing Created");
-  res.redirect("/listings");
 };
 
 
